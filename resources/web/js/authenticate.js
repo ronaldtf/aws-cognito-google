@@ -181,16 +181,15 @@ var callApiGateway = function(resource, accessToken = null) {
 var performActionGoogle = function(action, resource, token) {
 
     if (action == 's3') {
-        var loginId = 'cognito-idp.' + config.region + '.amazonaws.com/' + config.userPoolIdGoogle
+        const loginId = 'cognito-idp.' + config.region + '.amazonaws.com/' + config.userPoolIdGoogle
         AWS.config.region = config.region
         AWS.config.credentials = new AWS.CognitoIdentityCredentials({
             IdentityPoolId: config.identityPoolIdGoogle,
             Logins: {
-                'cognito-idp.eu-west-1.amazonaws.com/eu-west-1_L8QHaLZrS': token
+                [loginId]: token
             }
         });
 
-        console.log('pp')
         AWS.config.credentials.get(function(error) {
             var accessKey = AWS.config.credentials.accessKeyId
             var secretKey = AWS.config.credentials.secretAccessKey
@@ -321,7 +320,6 @@ function deleteCookie(name) {
 }
 
 window.addEventListener('load', function() {
-    // var ID_TOKEN = 'id_token='
     var ID_TOKEN = 'id_token='
     var pathname = window.location.href
 

@@ -161,6 +161,7 @@ Resources:
   ApiGatewayRole:
     Type: AWS::IAM::Role
     Properties:
+      RoleName: !Sub ${AWS::StackName}-apigtw-role
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -508,6 +509,7 @@ Resources:
   GoogleFedIdentityRole:
     Type: AWS::IAM::Role
     Properties:
+      RoleName: !Sub ${AWS::StackName}-googlefedidp-role
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -544,6 +546,12 @@ Resources:
           ClientId: !Ref CognitoAppClient
           ServerSideTokenCheck: False
   
+  AuthenticatedRoleFedIdpGoogleAttachment:
+    Type: AWS::Cognito::IdentityPoolRoleAttachment
+    Properties:
+      IdentityPoolId: !Ref CognitoFedIdentityWithGoogle
+      Roles:
+        authenticated: !GetAtt GoogleFedIdentityRole.Arn
 
   ##############################################
   ##       Cognito User Pool for Google       ##
@@ -684,6 +692,10 @@ Outputs:
   IdentityPoolId:
     Description: Federated Identity Id
     Value: !Ref CognitoFedIdentityOnly
+
+  GoogleIdentityPoolId:
+    Description: Google Federated Identity Id
+    Value: !Ref CognitoFedIdentityWithGoogle
 
   Region:
     Description: AWS Region
