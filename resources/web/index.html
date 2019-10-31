@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Cognito Demo</title>
+    <meta charset='utf-8' />
+    <script type='text/javascript' src='https://apis.google.com/js/platform.js'></script>
+    <script type='text/javascript' src='https://sdk.amazonaws.com/js/aws-sdk-2.1.12.min.js'></script>
+    <script type='text/javascript' src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script type='text/javascript' src="js/lib/aws-cognito-sdk.min.js"></script>
+    <script type='text/javascript' src="js/lib/amazon-cognito-auth.min.js"></script>
+    <script type='text/javascript' src="js/lib/amazon-cognito-identity.min.js"></script>
+    <script type='text/javascript' src='js/lib/axios/dist/axios.standalone.js'></script>
+    <script type='text/javascript' src='js/lib/CryptoJS/rollups/hmac-sha256.js'></script>
+    <script type='text/javascript' src='js/lib/CryptoJS/rollups/sha256.js'></script>
+    <script type='text/javascript' src='js/lib/apiGatewayCore/sigV4Client.js'></script>
+    <script type='text/javascript' src='js/lib/apiGatewayCore/apiGatewayClient.js'></script>
+    <script type='text/javascript' src='js/lib/apiGatewayCore/simpleHttpClient.js'></script>
+    <script type='text/javascript' src='js/lib/apiGatewayCore/utils.js'></script>
+    <script type='text/javascript' src='js/config.js'></script>
+    <script type='text/javascript' src='js/authenticate.js'></script>
+    <script type='text/javascript' src='js/apigateway.js'></script>
+    <link rel="stylesheet" href="css/style.css" />
+</head>
+
+<body>
+    <table>
+        <th colspan='5'>
+            Login options
+        </th>
+        <tr>
+            <td></td>
+            <td>
+                <button class='buttonauth' id='signin' onclick='googleSignIn()'>Sign In</button>
+            </td>
+            <td>
+                <button class='buttonauth' id='signout' onclick='googleSignOut()'>Sign Out</button>
+            </td>
+            <td>
+                <button class='buttonauth' id='showtoken' onclick='showToken()'>Show Token</button>
+            </td>
+            <td></td>
+        </tr>
+        <th colspan='5'>
+            <p></p>
+            Federated Identity
+        </th>
+        <tr>
+            <td>
+                <button class='buttonactions' id='buttonFedIdentity1' onclick="doButtonActionFedIdentity()">Credentials</button>
+            </td>
+            <td>
+                <button class='buttonactions' id='buttonFedIdentity2' onclick="doButtonActionFedIdentity('s3')">S3</button>
+            </td>
+            <td>
+                <button class='buttonactions' id='buttonFedIdentity3' onclick="doButtonActionFedIdentity('apigateway', config.apiResource)">API Gtw noauth</button>
+            </td>
+            <td>
+                <button class='buttonactions' id='buttonFedIdentity4' onclick="doButtonActionFedIdentity('apigatewayIAM', config.apiIAMResource)">API Gtw IAM signed</button>
+            </td>
+            <td>
+                <button class='buttonnorecommended' id='buttonFedIdentity5' onclick="doButtonActionFedIdentity('apigatewayCognito', config.apiCognitoResource)">API Gtw CognitoAuth</button>
+            </td>
+        </tr>
+        <th colspan='5'>
+            IAM Role
+        </th>
+        <tr>
+            <td>
+                <button class='buttonactions' id='buttonSTS1' onclick="doButtonActionSTS()">Credentials</button>
+            </td>
+            <td>
+                <button class='buttonactions' id='buttonSTS2' onclick="doButtonActionSTS('s3')">S3</button>
+            </td>
+            <td>
+                <button class='buttonactions' id='buttonSTS3' onclick="doButtonActionSTS('apigateway', config.apiResource)">API Gtw noauth</button>
+            </td>
+            <td>
+                <button class='buttonactions' id='buttonSTS4' onclick="doButtonActionSTS('apigatewayIAM', config.apiIAMResource)">API Gtw IAM signed</button>
+            </td>
+            <td>
+                <button class='buttonnorecommended' id='buttonSTS5' onclick="doButtonActionSTS('apigatewayCognito', config.apiCognitoResource)">API Gtw CognitoAuth</button>
+            </td>
+        </tr>
+        <th colspan='5'>
+            Cognito User Pool
+        </th>
+        <tr>
+            <td>
+                <button class='buttonactions' id='buttonCognito1' onclick="doButtonActionCognito()">Credentials</button>
+            </td>
+            <td>
+                <button class='buttonactions' id='buttonCognito2' onclick="doButtonActionCognito('s3')">S3</button>
+            </td>
+            <td>
+                <button class='buttonactions' id='buttonCognito3' onclick="doButtonActionCognito('apigateway', config.apiResource)">API Gtw noauth</button>
+            </td>
+            <td>
+                <button class='buttonnorecommended' id='buttonCognito4' onclick="doButtonActionCognito('apigatewayIAM', config.apiIAMResource)">API Gtw IAM signed</button>
+            </td>
+            <td>
+                <button class='buttonactions' id='buttonCognito5' onclick="doButtonActionCognito('apigatewayCognito', config.apiCognitoResource)">API Gtw CognitoAuth</button>
+            </td>
+        </tr>
+        <th id='span' colspan='5'>
+            <p></p>
+        </th>
+        <tr>
+            <td colspan="5 ">
+                <button class='buttonclear' id='doClear' onclick='doClear()'>Clear</button>
+            </td>
+        </tr>
+    </table>
+    <p>
+        <hr>
+        <div>
+            <div id="result" value=" "></div>
+        </div>
+        <div>
+            <div id="result2" value=" "></div>
+        </div>
+        <hr>
+    </p>
+</body>
+
+</html>

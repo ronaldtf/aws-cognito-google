@@ -1,0 +1,101 @@
+button {
+    border: 1px solid #0066cc;
+    background-color: #0099cc;
+    color: #ffffff;
+    padding: 5px 10px;
+}
+
+button:disabled,
+button[disabled] {
+    border: 1px solid #999999;
+    background-color: #cccccc;
+    color: #666666;
+}
+
+.buttonauth {
+    background-color: #0000FF;
+    border: none;
+    color: white;
+    padding: 5px 15px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 4px 2px;
+    cursor: pointer;
+    width: 130px;
+}
+
+.buttonauth:hover {
+    background-color: #00aacc;
+    color: #ffffff;
+    padding: 5px 10px;
+}
+
+div {
+    padding: 5px 10px;
+}
+
+.buttonactions {
+    background-color: #00AA00;
+    border: none;
+    color: white;
+    padding: 5px 15px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 4px 2px;
+    cursor: pointer;
+    width: 130px;
+}
+
+.buttonnorecommended:hover {
+    background-color: #e7c06b;
+    color: #ffffff;
+    padding: 5px 10px;
+}
+
+.buttonnorecommended {
+    background-color: #e49f0a;
+    border: none;
+    color: white;
+    padding: 5px 15px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 4px 2px;
+    cursor: pointer;
+    width: 130px;
+}
+
+.buttonactions:hover {
+    background-color: #2beb5b;
+    color: #ffffff;
+    padding: 5px 10px;
+}
+
+.buttonclear {
+    background-color: #EE0000;
+    border: none;
+    color: white;
+    padding: 5px 15px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 4px 2px;
+    cursor: pointer;
+    width: 130px;
+}
+
+.buttonclear:hover {
+    background-color: #ff24e2;
+    color: #ffffff;
+    padding: 5px 10px;
+}
+
+td {
+    text-align: center;
+}
