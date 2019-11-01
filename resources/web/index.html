@@ -31,10 +31,10 @@
         <tr>
             <td></td>
             <td>
-                <button class='buttonauth' id='signin' onclick='googleSignIn()'>Sign In</button>
+                <button class='buttonauth' id='signin' onclick='signIn()'>Sign In</button>
             </td>
             <td>
-                <button class='buttonauth' id='signout' onclick='googleSignOut()'>Sign Out</button>
+                <button class='buttonauth' id='signout' onclick='signOut()'>Sign Out</button>
             </td>
             <td>
                 <button class='buttonauth' id='showtoken' onclick='showToken()'>Show Token</button>
@@ -81,6 +81,23 @@
             <td>
                 <button class='buttonnorecommended' id='buttonSTS5' onclick="doButtonActionSTS('apigatewayCognito', config.apiCognitoResource)">API Gtw CognitoAuth</button>
             </td>
+        </tr>
+        <th colspan='5'>
+            <p></p>
+            Login options
+        </th>
+        <tr>
+            <td></td>
+            <td>
+                <button class='buttonauth' id='googleSignin' onclick='googleSignIn()'>Sign In</button>
+            </td>
+            <td>
+                <button class='buttonauth' id='googleSignout' onclick='googleSignOut()'>Sign Out</button>
+            </td>
+            <td>
+                <button class='buttonauth' id='showtokenGoogle' onclick='showTokenGoogle()'>Show Token</button>
+            </td>
+            <td></td>
         </tr>
         <th colspan='5'>
             Cognito User Pool

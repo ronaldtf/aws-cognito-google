@@ -13,7 +13,6 @@ window.addEventListener('load', function() {
 
 var userChanged = function(user) {
     var userLogged = (user.Zi != null)
-    console.log("User logged: " + userLogged)
     if (userLogged) {
         googleUser = user
         document.getElementById('buttonFedIdentity1').disabled = false
@@ -26,11 +25,6 @@ var userChanged = function(user) {
         document.getElementById('buttonSTS3').disabled = false
         document.getElementById('buttonSTS4').disabled = false
         document.getElementById('buttonSTS5').disabled = false
-        document.getElementById('buttonCognito1').disabled = false
-        document.getElementById('buttonCognito2').disabled = false
-        document.getElementById('buttonCognito3').disabled = false
-        document.getElementById('buttonCognito4').disabled = false
-        document.getElementById('buttonCognito5').disabled = false
         document.getElementById('signin').disabled = false
         document.getElementById('signout').disabled = false
         document.getElementById('showtoken').disabled = false
@@ -47,15 +41,11 @@ var userChanged = function(user) {
         document.getElementById('buttonSTS3').disabled = true
         document.getElementById('buttonSTS4').disabled = true
         document.getElementById('buttonSTS5').disabled = true
-        document.getElementById('buttonCognito1').disabled = true
-        document.getElementById('buttonCognito2').disabled = true
-        document.getElementById('buttonCognito3').disabled = true
-        document.getElementById('buttonCognito4').disabled = true
-        document.getElementById('buttonCognito5').disabled = true
         document.getElementById('signin').disabled = false
         document.getElementById('signout').disabled = true
         document.getElementById('showtoken').disabled = true
-        document.getElementById('doClear').disabled = true
+        if (getCookie('token') == undefined || getCookie('token') == '')
+            document.getElementById('doClear').disabled = true
     }
 }
 
@@ -69,20 +59,18 @@ var doClear = function() {
         tag2.removeChild(tag2.children[0]);
 }
 
-var googleSignIn = function() {
+var signIn = function() {
     if (auth2.isSignedIn.get() == false) {
         auth2.signIn();
     }
 }
 
-var googleSignOut = function() {
+var signOut = function() {
     if (auth2.isSignedIn.get() == true) {
         auth2.signOut();
         auth2.disconnect()
-        deleteCookie('token')
-        deleteCookie('action')
-        deleteCookie('resource')
     }
+    doClear()
 }
 
 var output = function(inp, tag) {
@@ -108,7 +96,7 @@ var showToken = function() {
 
     doClear()
     output(JSON.stringify(idTokenDecoded, null, 2), document.getElementById("result"))
-    output(JSON.stringify(accessToken, null, 2), document.getElementById("result2"))
+    output(accessToken, document.getElementById("result2"))
 }
 
 var accessS3 = function(awsAccessKeyId, awsSecretAccessKey, awsSessionToken) {
@@ -194,7 +182,6 @@ var performActionGoogle = function(action, resource, token) {
             var accessKey = AWS.config.credentials.accessKeyId
             var secretKey = AWS.config.credentials.secretAccessKey
             var sessionToken = AWS.config.credentials.sessionToken
-            console.log(accessKey)
             accessS3(accessKey, secretKey, sessionToken)
         })
 
@@ -278,18 +265,47 @@ var doButtonActionFedIdentity = function(action = null, resource = null) {
     });
 }
 
-var doButtonActionCognito = function(action = null, resource = null) {
+var showTokenGoogle = function() {
+    doClear()
+    output(JSON.stringify(decodeToken(getCookie('token')), null, 2), document.getElementById("result"))
+    output(getCookie('token'), document.getElementById("result2"))
+}
 
-    var cookieToken = getCookie('token')
+function googleSignIn() {
+    document.getElementById('buttonCognito1').disabled = false
+    document.getElementById('buttonCognito2').disabled = false
+    document.getElementById('buttonCognito3').disabled = false
+    document.getElementById('buttonCognito4').disabled = false
+    document.getElementById('buttonCognito5').disabled = false
+    document.getElementById('googleSignout').disabled = false
+    document.getElementById('showtokenGoogle').disabled = false
+    document.getElementById('doClear').disabled = false
 
-    if (cookieToken === undefined || cookieToken === '') {
-        setCookie('action', action)
-        setCookie('resource', resource)
-
+    if (getCookie('token') == undefined || getCookie('token') == '') {
         var url = 'https://' + config.userPoolDomainName + '.auth.' + config.region + '.amazoncognito.com/login?redirect_uri=' + config.callbackUrl + '&response_type=token&client_id=' + config.userPoolClientId
         window.location.href = url
     }
-    performActionGoogle(action, resource, cookieToken)
+
+}
+
+function googleSignOut() {
+    document.getElementById('buttonCognito1').disabled = true
+    document.getElementById('buttonCognito2').disabled = true
+    document.getElementById('buttonCognito3').disabled = true
+    document.getElementById('buttonCognito4').disabled = true
+    document.getElementById('buttonCognito5').disabled = true
+    document.getElementById('googleSignout').disabled = true
+    document.getElementById('showtokenGoogle').disabled = true
+
+    deleteCookie('token')
+    doClear()
+    if (googleUser == null)
+        document.getElementById('doClear').disabled = true
+}
+
+function doButtonActionCognito(action = null, resource = null) {
+
+    performActionGoogle(action, resource, getCookie('token'))
 }
 
 function parseJwt(token) {
@@ -302,7 +318,7 @@ function setCookie(cname, cvalue) {
     var d = new Date();
     d.setTime(d.getTime() + (30 * 60 * 1000)); // Expires after 30 minutes
     var expires = "expires=" + d.toUTCString();
-    document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+    document.cookie = cname + "=" + cvalue + ";" + expires + ";SameSite=None";
 }
 
 function getCookie(name) {
@@ -314,9 +330,7 @@ function getCookie(name) {
 }
 
 function deleteCookie(name) {
-    if (getCookie(name)) {
-        document.cookie = name + ";expires=Thu, 01 Jan 1970 00:00:01 GMT";
-    }
+    document.cookie = name + "='';expires=Thu, 01 Jan 1970 00:00:01 GMT;SameSite=None";
 }
 
 window.addEventListener('load', function() {
@@ -335,9 +349,6 @@ window.addEventListener('load', function() {
         output(JSON.stringify(parseJwt(idToken), undefined, 4), document.getElementById("result"))
 
         setCookie('token', idToken)
-        var cookieAction = getCookie('action')
-        var cookieResource = getCookie('resource')
-        doButtonActionCognito(cookieAction, cookieResource)
-
+        document.getElementById('doClear').disabled = false
     }
 })

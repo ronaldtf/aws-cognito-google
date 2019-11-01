@@ -243,9 +243,11 @@ Resources:
   MethodApiGatewayCORS:
     Type: AWS::ApiGateway::Method
     Properties:
-      ApiKeyRequired: False
-      HttpMethod: OPTIONS
       AuthorizationType: NONE
+      ResourceId: !Ref TestResource
+      RestApiId: !Ref ApiGatewayInstance
+      HttpMethod: OPTIONS
+      ApiKeyRequired: false
       Integration:
         IntegrationResponses:
         - StatusCode: 200
@@ -267,8 +269,6 @@ Resources:
             method.response.header.Access-Control-Allow-Headers: false
             method.response.header.Access-Control-Allow-Methods: false
             method.response.header.Access-Control-Allow-Origin: false
-      ResourceId: !Ref TestResource
-      RestApiId: !Ref ApiGatewayInstance
 
   MethodApiGatewayCognito:
     Type: AWS::ApiGateway::Method
@@ -697,6 +697,10 @@ Outputs:
     Description: Google Federated Identity Id
     Value: !Ref CognitoFedIdentityWithGoogle
 
+  GoogleUserPoolId:
+    Description: Google User Pool Id
+    Value: !Ref CognitoUserPoolGoogle
+
   Region:
     Description: AWS Region
     Value: !Ref AWS::Region
@@ -704,10 +708,6 @@ Outputs:
   Role1:
     Description: STS role
     Value: !GetAtt RoleSTS.Arn
-
-  Role2:
-    Description: Federated Identity Role
-    Value: !GetAtt RoleCognitoFedIdentity.Arn
 
   APIResource:
     Description: API Gateway Default Resource
