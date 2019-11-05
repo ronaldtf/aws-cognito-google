@@ -1,37 +1,35 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description:
-  Prepare the demo infrastructure resources
+  Prepare the insfrastructure for authentication/authorization PoC
 
 Parameters:
   # WebBucket:
   #   Type: String
   #   Description: Name of the bucket where web files are placed
   #   MinLength: 3
-  #   Default: rtf-cognito-web
   ReferredBucket:
     Type: String
     Description: Name of the bucket to refer from the web page
     MinLength: 3
-    Default: rtf-cognito
   CustomDomainName:
     Type: String
     Description: Domain name to be used in the Cognito User Pool
     MinLength: 3
-    Default: myappdomainname
-  AppId:
+  GoogleAppId:
     Type: String
     Description: Google Application id
     MinLength: 1
-    Default: 499688413332-hk9kfn58091sfhn2gip95ikikkf91oet.apps.googleusercontent.com
-  Secret:
+  GoogleSecret:
     Type: String
     Description: Google Secret
     MinLength: 1
-    Default: NuPi259rIz9Jt_mR_kE_RQWM
   Stage:
     Type: String
     Description: API Gateway stage
-    Default: 'test'
+    Default: test
+  CallbackUrl:
+    Type: String
+    Description: Callback URL from Cognito
 
 Resources:
 
@@ -55,7 +53,7 @@ Resources:
   #         BlockPublicPolicy: False
   #         IgnorePublicAcls: False
   #         RestrictPublicBuckets: False
-  
+  #
   # S3WebBucketPolicyPublic:
   #   Type: 'AWS::S3::BucketPolicy'
   #   Properties:
@@ -69,24 +67,23 @@ Resources:
 
   S3AccessBucket:
     Type: AWS::S3::Bucket
-    Properties: 
+    Properties:
       BucketName: !Ref ReferredBucket
-      CorsConfiguration: 
+      CorsConfiguration:
         CorsRules:
           - AllowedHeaders: ['*']
-            AllowedOrigins: ['*']
+            AllowedOrigins: [!Ref CallbackUrl]
             AllowedMethods: [GET]
             Id: 'allow-public-access'
-      Tags: 
-        - Key: Name
-          Value: ReferredBucket
-      VersioningConfiguration: 
-        Status: Suspended
+  #    VersioningConfiguration: 
+  #      Status: Suspended
 
   ##############################################
-  ##                  Lambda                  ##
+  ##                  Lambdas                 ##
   ##############################################
-  LambdaTestRole:
+
+  # Role to be used in the lambdas
+  GenericLambdaRole:
     Type: AWS::IAM::Role
     Properties: 
       RoleName: !Sub ${AWS::StackName}-lambda-role
@@ -101,14 +98,15 @@ Resources:
               - 'sts:AssumeRole'
       Path: '/'
 
-  LambdaTestFunctionNoAuth:
+  # Lambda to be called when no authorization is required
+  LambdaNoAuth:
     Type: AWS::Lambda::Function
     Properties:
       FunctionName: !Sub '${AWS::StackName}-lambda-noauth'
       Description: 'Test function for Cognito POC'
       Handler: index.lambda_handler
       Runtime: python3.6
-      Role: !GetAtt LambdaTestRole.Arn
+      Role: !GetAtt GenericLambdaRole.Arn
       Code:
         ZipFile: |
           import json
@@ -118,15 +116,16 @@ Resources:
                   'statusCode': 200,
                   'body': 'A call withouth authentication has been successfully responded'
           }
-
-  LambdaTestFunctionSigned:
+  
+  # Lambda to be called when IAM credentials are required
+  LambdaSigned:
     Type: AWS::Lambda::Function
     Properties:
       FunctionName: !Sub '${AWS::StackName}-lambda-signed'
       Description: 'Test function for Cognito POC'
       Handler: index.lambda_handler
       Runtime: python3.6
-      Role: !GetAtt LambdaTestRole.Arn
+      Role: !GetAtt GenericLambdaRole.Arn
       Code:
         ZipFile: |
           import json
@@ -137,14 +136,15 @@ Resources:
                   'body': 'A signed call has been successfully responded!'
           }
   
-  LambdaTestFunctionCognito:
+  # Lambda to be called with a Cognito authorizer
+  LambdaCognito:
     Type: AWS::Lambda::Function
     Properties:
       FunctionName: !Sub '${AWS::StackName}-lambda-cognito'
       Description: 'Test function for Cognito POC'
       Handler: index.lambda_handler
       Runtime: python3.6
-      Role: !GetAtt LambdaTestRole.Arn
+      Role: !GetAtt GenericLambdaRole.Arn
       Code:
         ZipFile: |
           import json
@@ -158,6 +158,42 @@ Resources:
   ##############################################
   ##                 API Gateway              ##
   ##############################################
+
+  # API Gateway role to log results in CloudWatch
+  ApiGatewayCloudWatchLogsRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - apigateway.amazonaws.com
+            Action: 'sts:AssumeRole'
+      Path: /
+      ManagedPolicyArns:
+        - >-
+          arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
+  
+  # Attach log to API Gateway service
+  ApiGatewayAccount:
+    Type: AWS::ApiGateway::Account
+    Properties:
+      CloudWatchRoleArn: !GetAtt ApiGatewayCloudWatchLogsRole.Arn
+
+  # API Gateway instance
+  ApiGatewayInstance:
+    Type: AWS::ApiGateway::RestApi
+    Properties: 
+      Description: API Gateway for the Cognito POC
+      FailOnWarnings: True
+      Name: !Ref AWS::StackName
+      EndpointConfiguration:
+        Types: 
+          - EDGE
+
+  # Role to be attached to the API Gateway
   ApiGatewayRole:
     Type: AWS::IAM::Role
     Properties:
@@ -178,234 +214,241 @@ Resources:
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
-              - Effect: 'Allow'
+              - Effect: Allow
                 Action: 'lambda:*'
-                Resource: !GetAtt LambdaTestFunctionNoAuth.Arn
-              - Effect: 'Allow'
+                Resource: !GetAtt LambdaNoAuth.Arn
+              - Effect: Allow
                 Action: 'lambda:*'
-                Resource: !GetAtt LambdaTestFunctionSigned.Arn
-              - Effect: 'Allow'
+                Resource: !GetAtt LambdaSigned.Arn
+              - Effect: Allow
                 Action: 'lambda:*'
-                Resource: !GetAtt LambdaTestFunctionCognito.Arn
+                Resource: !GetAtt LambdaCognito.Arn
 
-  ApiGatewayInstance:
-    Type: AWS::ApiGateway::RestApi
-    Properties: 
-      Description: 'API Gateway for the Cognito POC'
-      FailOnWarnings: True
-      Name: !Ref AWS::StackName
-      EndpointConfiguration:
-        Types: 
-          - EDGE
+  # API Gateway Resources
 
-  TestResource:
+  NoAuthResource:
     Type: AWS::ApiGateway::Resource
     Properties: 
       ParentId: !GetAtt ApiGatewayInstance.RootResourceId
-      PathPart: 'noauth'
+      PathPart: noauth
       RestApiId: !Ref ApiGatewayInstance
 
-  TestResourceCognito:
+  CognitoResource:
     Type: AWS::ApiGateway::Resource
     Properties: 
       ParentId: !GetAtt ApiGatewayInstance.RootResourceId
-      PathPart: 'cognito'
+      PathPart: cognito
       RestApiId: !Ref ApiGatewayInstance
 
-  TestResourceIAM:
+  IAMAuthResource:
     Type: AWS::ApiGateway::Resource
     Properties: 
       ParentId: !GetAtt ApiGatewayInstance.RootResourceId
-      PathPart: 'iam'
+      PathPart: iam
       RestApiId: !Ref ApiGatewayInstance
 
-  MethodApiGateway:
+  # API Gateway Methods
+
+  NoAuthMethod:
     Type: AWS::ApiGateway::Method
     Properties: 
       ApiKeyRequired: False
-      HttpMethod: 'GET'
-      AuthorizationType: 'NONE'
-      Integration: 
-          Credentials: !GetAtt ApiGatewayRole.Arn
-          TimeoutInMillis: 15000
-          Type: AWS
-          IntegrationHttpMethod: POST
-          Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaTestFunctionNoAuth.Arn}/invocations'
-          IntegrationResponses:
-            - StatusCode: '200'
-      MethodResponses: 
-        - ResponseModels:
-            application/json: 'Empty'
-          StatusCode: '200'
-      ResourceId: !Ref TestResource
-      RestApiId: !Ref ApiGatewayInstance
-
-  MethodApiGatewayCORS:
-    Type: AWS::ApiGateway::Method
-    Properties:
+      HttpMethod: GET
       AuthorizationType: NONE
-      ResourceId: !Ref TestResource
-      RestApiId: !Ref ApiGatewayInstance
-      HttpMethod: OPTIONS
-      ApiKeyRequired: false
-      Integration:
-        IntegrationResponses:
-        - StatusCode: 200
-          ResponseParameters:
-            method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
-            method.response.header.Access-Control-Allow-Methods: "'GET,OPTIONS'"
-            method.response.header.Access-Control-Allow-Origin: "'*'"
-          ResponseTemplates:
-            application/json: ''
-        PassthroughBehavior: WHEN_NO_MATCH
-        RequestTemplates:
-          application/json: '{"statusCode": 200}'
-        Type: MOCK
-      MethodResponses:
-      - StatusCode: 200
-        ResponseModels:
-          application/json: 'Empty'
-        ResponseParameters:
-            method.response.header.Access-Control-Allow-Headers: false
-            method.response.header.Access-Control-Allow-Methods: false
-            method.response.header.Access-Control-Allow-Origin: false
-
-  MethodApiGatewayCognito:
-    Type: AWS::ApiGateway::Method
-    Properties: 
-      ApiKeyRequired: False
-      HttpMethod: 'GET'
-      AuthorizationType: 'COGNITO_USER_POOLS'
-      AuthorizerId: !Ref CognitoAuthorizer
       Integration: 
           Credentials: !GetAtt ApiGatewayRole.Arn
           TimeoutInMillis: 15000
           Type: AWS
           IntegrationHttpMethod: POST
-          Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaTestFunctionCognito.Arn}/invocations'
+          Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaNoAuth.Arn}/invocations'
           IntegrationResponses:
-            - StatusCode: '200'
+            - StatusCode: 200
+              ResponseParameters:
+                method.response.header.Access-Control-Allow-Origin: !Sub "'${CallbackUrl}'"
       MethodResponses: 
-        - ResponseModels:
-            application/json: 'Empty'
-          StatusCode: '200'
-      ResourceId: !Ref TestResourceCognito
+        - StatusCode: 200
+          ResponseModels:
+            application/json: Empty
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Origin: true
+      ResourceId: !Ref NoAuthResource
       RestApiId: !Ref ApiGatewayInstance
 
-  MethodApiGatewayCognitoCORS:
+  NoAuthMethodCORS:
     Type: AWS::ApiGateway::Method
     Properties:
       ApiKeyRequired: False
       HttpMethod: OPTIONS
       AuthorizationType: NONE
       Integration:
-        IntegrationResponses:
-        - StatusCode: 200
-          ResponseParameters:
-            method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
-            method.response.header.Access-Control-Allow-Methods: "'GET,OPTIONS'"
-            method.response.header.Access-Control-Allow-Origin: "'*'"
-          ResponseTemplates:
-            application/json: ''
-        PassthroughBehavior: WHEN_NO_MATCH
+        Type: MOCK
         RequestTemplates:
           application/json: '{"statusCode": 200}'
-        Type: MOCK
+        IntegrationResponses:
+          - StatusCode: 200
+            SelectionPattern: ''
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,OPTIONS'"
+              method.response.header.Access-Control-Allow-Origin: !Sub "'${CallbackUrl}'"
+            ResponseTemplates:
+              application/json: ''
       MethodResponses:
-      - StatusCode: 200
-        ResponseModels:
-          application/json: 'Empty'
-        ResponseParameters:
-            method.response.header.Access-Control-Allow-Headers: false
-            method.response.header.Access-Control-Allow-Methods: false
-            method.response.header.Access-Control-Allow-Origin: false
-      ResourceId: !Ref TestResourceCognito
+        - StatusCode: 200
+          ResponseModels:
+            application/json: Empty
+          ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: true
+              method.response.header.Access-Control-Allow-Methods: true
+              method.response.header.Access-Control-Allow-Origin: true
+      ResourceId: !Ref NoAuthResource
       RestApiId: !Ref ApiGatewayInstance
 
-  MethodApiGatewayIAM:
+  CognitoMethod:
     Type: AWS::ApiGateway::Method
     Properties: 
       ApiKeyRequired: False
-      HttpMethod: 'GET'
-      AuthorizationType: 'AWS_IAM'
+      HttpMethod: GET
+      AuthorizationType: COGNITO_USER_POOLS
+      AuthorizerId: !Ref UserPoolAuthorizer
       Integration: 
           Credentials: !GetAtt ApiGatewayRole.Arn
           TimeoutInMillis: 15000
           Type: AWS
           IntegrationHttpMethod: POST
-          Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaTestFunctionSigned.Arn}/invocations'
+          Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaCognito.Arn}/invocations'
           IntegrationResponses:
-            - StatusCode: '200'
+            - StatusCode: 200
+              ResponseParameters:
+                method.response.header.Access-Control-Allow-Origin: !Sub "'${CallbackUrl}'"
       MethodResponses: 
-        - ResponseModels:
-            application/json: 'Empty'
-          StatusCode: '200'
-      ResourceId: !Ref TestResourceIAM
+        - StatusCode: 200
+          ResponseModels:
+            application/json: Empty
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Origin: true
+      ResourceId: !Ref CognitoResource
       RestApiId: !Ref ApiGatewayInstance
 
-  MethodApiGatewayIAMCORS:
+  CognitoMethodCORS:
     Type: AWS::ApiGateway::Method
     Properties:
       ApiKeyRequired: False
       HttpMethod: OPTIONS
       AuthorizationType: NONE
       Integration:
-        IntegrationResponses:
-        - StatusCode: 200
-          ResponseParameters:
-            method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
-            method.response.header.Access-Control-Allow-Methods: "'GET,OPTIONS'"
-            method.response.header.Access-Control-Allow-Origin: "'*'"
-          ResponseTemplates:
-            application/json: ''
-        PassthroughBehavior: WHEN_NO_MATCH
+        Type: MOCK
         RequestTemplates:
           application/json: '{"statusCode": 200}'
-        Type: MOCK
+        IntegrationResponses:
+          - StatusCode: 200
+            SelectionPattern: ''
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,OPTIONS'"
+              method.response.header.Access-Control-Allow-Origin: !Sub "'${CallbackUrl}'"
+            ResponseTemplates:
+              application/json: ''
       MethodResponses:
-      - StatusCode: 200
-        ResponseModels:
-          application/json: 'Empty'
-        ResponseParameters:
-            method.response.header.Access-Control-Allow-Headers: false
-            method.response.header.Access-Control-Allow-Methods: false
-            method.response.header.Access-Control-Allow-Origin: false
-      ResourceId: !Ref TestResourceIAM
+        - StatusCode: 200
+          ResponseModels:
+            application/json: Empty
+          ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: true
+              method.response.header.Access-Control-Allow-Methods: true
+              method.response.header.Access-Control-Allow-Origin: true
+      ResourceId: !Ref CognitoResource
       RestApiId: !Ref ApiGatewayInstance
 
+  IAMAuthMethod:
+    Type: AWS::ApiGateway::Method
+    Properties: 
+      ApiKeyRequired: False
+      HttpMethod: GET
+      AuthorizationType: AWS_IAM
+      AuthorizerId: !Ref UserPoolAuthorizer
+      Integration: 
+          Credentials: !GetAtt ApiGatewayRole.Arn
+          TimeoutInMillis: 15000
+          Type: AWS
+          IntegrationHttpMethod: POST
+          Uri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaSigned.Arn}/invocations'
+          IntegrationResponses:
+            - StatusCode: 200
+              ResponseParameters:
+                method.response.header.Access-Control-Allow-Origin: !Sub "'${CallbackUrl}'"
+      MethodResponses: 
+        - StatusCode: 200
+          ResponseModels:
+            application/json: Empty
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Origin: true
+      ResourceId: !Ref IAMAuthResource
+      RestApiId: !Ref ApiGatewayInstance
+
+  IAMAuthMethodCORS:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      ApiKeyRequired: False
+      HttpMethod: OPTIONS
+      AuthorizationType: NONE
+      Integration:
+        Type: MOCK
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        IntegrationResponses:
+          - StatusCode: 200
+            SelectionPattern: ''
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,OPTIONS'"
+              method.response.header.Access-Control-Allow-Origin: !Sub "'${CallbackUrl}'"
+            ResponseTemplates:
+              application/json: ''
+      MethodResponses:
+        - StatusCode: 200
+          ResponseModels:
+            application/json: Empty
+          ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: true
+              method.response.header.Access-Control-Allow-Methods: true
+              method.response.header.Access-Control-Allow-Origin: true
+      ResourceId: !Ref IAMAuthResource
+      RestApiId: !Ref ApiGatewayInstance
+      
+  # API Gateway Deployment
   ApiGatewayDeployment:
     Type: AWS::ApiGateway::Deployment
     DependsOn:
-      - MethodApiGateway
-      - MethodApiGatewayCognito
-      - MethodApiGatewayIAM
+      - NoAuthMethod
+      - NoAuthMethodCORS
+      - CognitoMethod
+      - CognitoMethodCORS
+      - IAMAuthMethod
+      - IAMAuthMethodCORS
     Properties: 
       Description: Deployment of API Gateway
       RestApiId: !Ref ApiGatewayInstance
-      StageDescription: 
-        CacheClusterEnabled: False
-        CacheDataEncrypted: False
-        CachingEnabled: False
-        DataTraceEnabled: False
-        TracingEnabled: False
-      StageName: !Ref Stage
 
-  # ApiGatewayStage:
-  #   Type: AWS::ApiGateway::Stage
-  #   Properties: 
-  #     Description: 'Stage for testing'
-  #     RestApiId: !Ref ApiGatewayInstance
-  #     DeploymentId: !Ref ApiGatewayDeployment
-  #     StageName: 'dummy'
-  #     Tags: 
-  #       - Key: Name
-  #         Value: 'ApiGatewayCognito'
-  #     TracingEnabled: False
+  # APi Gateway Stage
+  ApiGatewayStage:
+    Type: AWS::ApiGateway::Stage
+    Properties: 
+      Description: Stage for testing
+      DeploymentId: !Ref ApiGatewayDeployment
+      RestApiId: !Ref ApiGatewayInstance
+      StageName: test
+      MethodSettings:
+        - LoggingLevel: ERROR
+          HttpMethod: '*'
+          ResourcePath: /*
 
   ##############################################
   ##                 Role STS                 ##
   ##############################################
-  RoleSTS:
+
+  # Role to be assumed with STS
+  RoleIAMAuthViaSTS:
     Type: AWS::IAM::Role
     Properties: 
       RoleName: !Sub ${AWS::StackName}-sts-role
@@ -420,7 +463,7 @@ Resources:
               - 'sts:AssumeRoleWithWebIdentity'
             Condition:
               StringEquals:
-                'accounts.google.com:aud': !Ref AppId
+                'accounts.google.com:aud': !Ref GoogleAppId
       Path: '/'
       Policies:
         - PolicyName: access-to-s3
@@ -445,18 +488,11 @@ Resources:
                   - !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:*/*/GET/cognito"
 
   ##############################################
-  ##         Federated Identity Only          ##
+  ##    Federated Identity Authentication     ##
   ##############################################
 
-  CognitoFedIdentityOnly:
-    Type: AWS::Cognito::IdentityPool
-    Properties: 
-      AllowUnauthenticatedIdentities: False
-      IdentityPoolName: !Sub ${AWS::StackName}fedidonly
-      SupportedLoginProviders:
-        accounts.google.com: !Ref AppId
-
-  RoleCognitoFedIdentity:
+  # Role to be attached to the Federated Identity
+  FedIdentityRole:
     Type: AWS::IAM::Role
     Properties: 
       RoleName: !Sub ${AWS::StackName}-fedidentity-role
@@ -471,7 +507,7 @@ Resources:
               - 'sts:AssumeRoleWithWebIdentity'
             Condition:
               StringEquals:
-                'cognito-identity.amazonaws.com:aud': !Ref CognitoFedIdentityOnly
+                'cognito-identity.amazonaws.com:aud': !Ref FedIdentity
       Path: '/'
       Policies:
         - PolicyName: access-to-s3
@@ -494,19 +530,28 @@ Resources:
                   - !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:*/*/GET/iam"
                   - !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:*/*/GET/noauth"
                   - !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:*/*/GET/cognito"
+  
+  FedIdentity:
+    Type: AWS::Cognito::IdentityPool
+    Properties: 
+      AllowUnauthenticatedIdentities: False
+      IdentityPoolName: !Sub ${AWS::StackName}fedidonly
+      SupportedLoginProviders:
+        accounts.google.com: !Ref GoogleAppId
 
   CognitoFedIdentityRoleAttachment:
     Type: AWS::Cognito::IdentityPoolRoleAttachment
     Properties: 
-      IdentityPoolId: !Ref CognitoFedIdentityOnly
+      IdentityPoolId: !Ref FedIdentity
       Roles:
-        authenticated: !GetAtt RoleCognitoFedIdentity.Arn
+        authenticated: !GetAtt FedIdentityRole.Arn
 
   ##############################################
-  ##    Federated Identity UserPool+Google    ##
+  ##      Federated Identity + UserPool       ##
   ##############################################
 
-  GoogleFedIdentityRole:
+  # Role to be attached to the Federated Identity
+  FedIdentityUserPoolRole:
     Type: AWS::IAM::Role
     Properties:
       RoleName: !Sub ${AWS::StackName}-googlefedidp-role
@@ -523,7 +568,7 @@ Resources:
             Condition:
               StringEquals:
                 cognito-identity.amazonaws.com:aud:
-                  - !Ref CognitoFedIdentityWithGoogle
+                  - !Ref FederatedIdentityWithUserPool
       Path: '/'
       Policies:
         - PolicyName: access-to-s3
@@ -536,28 +581,19 @@ Resources:
                 Resource:
                   - !Sub arn:aws:s3:::${ReferredBucket}/*
 
-  CognitoFedIdentityWithGoogle:
+  # Federated Identity
+  FederatedIdentityWithUserPool:
     Type: AWS::Cognito::IdentityPool
     Properties: 
       AllowUnauthenticatedIdentities: False
       IdentityPoolName: !Sub ${AWS::StackName}fedidupgoogle
       CognitoIdentityProviders:
-        - ProviderName: !Sub 'cognito-idp.${AWS::Region}.amazonaws.com/${CognitoUserPoolGoogle}'
-          ClientId: !Ref CognitoAppClient
+        - ProviderName: !Sub 'cognito-idp.${AWS::Region}.amazonaws.com/${UserPoolWithFedIdentity}'
+          ClientId: !Ref UserPoolAppClient
           ServerSideTokenCheck: False
   
-  AuthenticatedRoleFedIdpGoogleAttachment:
-    Type: AWS::Cognito::IdentityPoolRoleAttachment
-    Properties:
-      IdentityPoolId: !Ref CognitoFedIdentityWithGoogle
-      Roles:
-        authenticated: !GetAtt GoogleFedIdentityRole.Arn
-
-  ##############################################
-  ##       Cognito User Pool for Google       ##
-  ##############################################
-      
-  CognitoUserPoolGoogle:
+  # User Pool
+  UserPoolWithFedIdentity:
     Type: AWS::Cognito::UserPool
     Properties: 
       AdminCreateUserConfig: 
@@ -593,11 +629,12 @@ Resources:
       UsernameAttributes: 
         - email
       UserPoolName: !Sub ${AWS::StackName}userpoolgoogle
-  
-  CognitoAppClient:
+
+  # User Pool App Client
+  UserPoolAppClient:
     DependsOn:
-      - CognitoGoogleIdp
-      - CognitoUserPoolGoogle
+      - CognitoGoogleIdP
+      - UserPoolWithFedIdentity
     Type: AWS::Cognito::UserPoolClient
     Properties:
       ClientName: cognitoClientWithGoogle
@@ -611,7 +648,7 @@ Resources:
         - openid
         - profile
       CallbackURLs:
-        - 'http://localhost:4567'
+        - !Ref CallbackUrl
       GenerateSecret: True
       ReadAttributes: 
         - email
@@ -619,28 +656,39 @@ Resources:
       RefreshTokenValidity: 30
       ExplicitAuthFlows:
         - CUSTOM_AUTH_FLOW_ONLY
-      UserPoolId: !Ref CognitoUserPoolGoogle
+      UserPoolId: !Ref UserPoolWithFedIdentity
 
-  GooglePoolDomain:
+  # Link User Pool with Federated Identity
+  FedIdentityUserPoolAttachment:
+    Type: AWS::Cognito::IdentityPoolRoleAttachment
+    Properties:
+      IdentityPoolId: !Ref FederatedIdentityWithUserPool
+      Roles:
+        authenticated: !GetAtt FedIdentityUserPoolRole.Arn
+
+  # User Pool Custom Domain
+  UserPoolCustomDomain:
     Type: AWS::Cognito::UserPoolDomain
     Properties: 
       Domain: !Ref CustomDomainName
-      UserPoolId: !Ref CognitoUserPoolGoogle
+      UserPoolId: !Ref UserPoolWithFedIdentity
 
-  CognitoAuthorizer:
+  # Cognito Authorizer
+  UserPoolAuthorizer:
     Type: AWS::ApiGateway::Authorizer
     Properties: 
       AuthorizerResultTtlInSeconds: 0
       IdentitySource: method.request.header.authorization
       ProviderARNs: 
-        - !GetAtt CognitoUserPoolGoogle.Arn
+        - !GetAtt UserPoolWithFedIdentity.Arn
       Name: !Sub ${AWS::StackName}-cognito-auth
       RestApiId: !Ref ApiGatewayInstance
       Type: COGNITO_USER_POOLS
 
-  CognitoGoogleIdp:
+  # Google IdP associated to the User Pool
+  CognitoGoogleIdP:
     DependsOn:
-      - CognitoUserPoolGoogle
+      - UserPoolWithFedIdentity
     Type: AWS::Cognito::UserPoolIdentityProvider
     Properties: 
       AttributeMapping:
@@ -649,20 +697,20 @@ Resources:
         - Google
       ProviderName: Google
       ProviderType: Google
-      UserPoolId: !Ref CognitoUserPoolGoogle
+      UserPoolId: !Ref UserPoolWithFedIdentity
       ProviderDetails:
-        client_id: !Ref AppId
-        client_secret: !Ref Secret
+        client_id: !Ref GoogleAppId
+        client_secret: !Ref GoogleSecret
         authorize_scopes: 'email openid profile'
 
 Outputs:
-  GoogleClientId:
+  GoogleAppId:
     Description: Google Client Id (input)
-    Value: !Ref AppId
+    Value: !Ref GoogleAppId
 
-  UserPoolClientId:
+  UserPoolAppClient:
     Description: UserPool Client ID
-    Value: !Ref CognitoAppClient
+    Value: !Ref UserPoolAppClient
 
   CustomDomainName:
     Description: Custom Domain Name
@@ -674,42 +722,37 @@ Outputs:
 
   InvokeCognitoUrl:
     Description: URL to invoke to invoke UserPool with Google IdP
-    Value: !Sub https://${CustomDomainName}.auth.${AWS::Region}.amazoncognito.com/login?redirect_uri=http://localhost:4567&response_type=token&client_id=${CognitoAppClient}
-    #Value: !Sub https://${CustomDomainName}.auth.${AWS::Region}.amazoncognito.com/login?redirect_uri=http://${WebBucket}.s3-website-${AWS::Region}.amazonaws.com&response_type=token&client_id=${CognitoAppClient}
+    Value: !Sub https://${CustomDomainName}.auth.${AWS::Region}.amazoncognito.com/login?redirect_uri=${CallbackUrl}&response_type=token&client_id=${UserPoolAppClient}
   
   CallbackUrl:
     Description: Callback URL from Cognito
-    Value: http://localhost:4567 #!Sub http://${WebBucket}.s3-website-${AWS::Region}.amazonaws.com
-
-  Prefix:
-    Description: Resources Prefix
-    Value: !Ref AWS::StackName
+    Value: !Ref CallbackUrl
 
   ApiEndpoint:
     Description: API Endpoint URL
     Value: !Sub https://${ApiGatewayInstance}.execute-api.${AWS::Region}.amazonaws.com/${Stage}
 
-  IdentityPoolId:
+  FedIdentity:
     Description: Federated Identity Id
-    Value: !Ref CognitoFedIdentityOnly
+    Value: !Ref FedIdentity
 
-  GoogleIdentityPoolId:
+  FederatedIdentityWithUserPool:
     Description: Google Federated Identity Id
-    Value: !Ref CognitoFedIdentityWithGoogle
+    Value: !Ref FederatedIdentityWithUserPool
 
-  GoogleUserPoolId:
+  UserPoolWithFedIdentity:
     Description: Google User Pool Id
-    Value: !Ref CognitoUserPoolGoogle
+    Value: !Ref UserPoolWithFedIdentity
 
   Region:
     Description: AWS Region
     Value: !Ref AWS::Region
   
-  Role1:
+  RoleIAMAuthViaSTS:
     Description: STS role
-    Value: !GetAtt RoleSTS.Arn
+    Value: !GetAtt RoleIAMAuthViaSTS.Arn
 
-  APIResource:
+  APINoAuthResource:
     Description: API Gateway Default Resource
     Value: '/noauth'
 
@@ -720,3 +763,7 @@ Outputs:
   APICognitoResource:
     Description: API GAteway Resource with Cognito Authentication
     Value: '/cognito'
+  
+  ReferredBucket:
+    Description: Bucket with files
+    Value: !Ref ReferredBucket

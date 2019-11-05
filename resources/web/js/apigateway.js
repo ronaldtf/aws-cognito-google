@@ -13,8 +13,8 @@ apigateway.makeRequest = function(credentials, resource, requestType, defaultCon
 
     var authType = 'AWS_IAM'
     var additionalParams = {}
-    var endpoint = /(^https?:\/\/[^\/]+)/g.exec(config.apiEndpoint)[1];
-    var pathComponent = config.apiEndpoint.substring(endpoint.length);
+    var endpoint = /(^https?:\/\/[^\/]+)/g.exec(config.ApiEndpoint)[1];
+    var pathComponent = config.ApiEndpoint.substring(endpoint.length);
 
     var httpParams = {
         endpoint: endpoint,
@@ -26,7 +26,7 @@ apigateway.makeRequest = function(credentials, resource, requestType, defaultCon
         secretKey: credentials.secretAccessKey,
         sessionToken: credentials.sessionToken,
         serviceName: 'execute-api',
-        region: config.region,
+        region: config.Region,
         endpoint: endpoint,
         defaultContentType: 'application/json',
         defaultAcceptType: 'application/json'
@@ -49,6 +49,7 @@ apigateway.makeRequest = function(credentials, resource, requestType, defaultCon
             "status_text": result.statusText
         })
     }).catch(function(result) {
+        console.log(result)
         callback({
             "data": "",
             "status": "400",

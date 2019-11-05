@@ -4,7 +4,7 @@ var googleUser = null
 window.addEventListener('load', function() {
     gapi.load('auth2', function() {
         auth2 = gapi.auth2.init({
-            client_id: config.googleClientId,
+            client_id: config.GoogleAppId,
             scope: 'email'
         });
         auth2.currentUser.listen(userChanged)
@@ -25,7 +25,7 @@ var userChanged = function(user) {
         document.getElementById('buttonSTS3').disabled = false
         document.getElementById('buttonSTS4').disabled = false
         document.getElementById('buttonSTS5').disabled = false
-        document.getElementById('signin').disabled = false
+        document.getElementById('signin').disabled = true
         document.getElementById('signout').disabled = false
         document.getElementById('showtoken').disabled = false
         document.getElementById('doClear').disabled = false
@@ -102,14 +102,20 @@ var showToken = function() {
 var accessS3 = function(awsAccessKeyId, awsSecretAccessKey, awsSessionToken) {
 
     var s3 = new AWS.S3({
-        region: config.region,
+        region: config.Region,
         accessKeyId: awsAccessKeyId,
         secretAccessKey: awsSecretAccessKey,
         sessionToken: awsSessionToken
     });
 
+    console.log({
+        region: config.Region,
+        accessKeyId: awsAccessKeyId,
+        secretAccessKey: awsSecretAccessKey,
+        sessionToken: awsSessionToken
+    })
     var paramsS3 = {
-        Bucket: config.bucket,
+        Bucket: config.ReferredBucket,
         Key: config.s3key
     }
     s3.getObject(paramsS3, function(err, data) {
@@ -146,7 +152,7 @@ var callApiGateway = function(resource, accessToken = null) {
         accessToken = ''
 
     $.ajax({
-        url: config.apiEndpoint + resource,
+        url: config.ApiEndpoint + resource,
         type: 'GET',
         crossDomain: true,
         contentType: 'application/json',
@@ -169,20 +175,25 @@ var callApiGateway = function(resource, accessToken = null) {
 var performActionGoogle = function(action, resource, token) {
 
     if (action == 's3') {
-        const loginId = 'cognito-idp.' + config.region + '.amazonaws.com/' + config.userPoolIdGoogle
-        AWS.config.region = config.region
+        const loginId = 'cognito-idp.' + config.Region + '.amazonaws.com/' + config.UserPoolWithFedIdentity
+        AWS.config.region = config.Region
         AWS.config.credentials = new AWS.CognitoIdentityCredentials({
-            IdentityPoolId: config.identityPoolIdGoogle,
+            IdentityPoolId: config.FederatedIdentityWithUserPool,
             Logins: {
                 [loginId]: token
             }
         });
 
         AWS.config.credentials.get(function(error) {
-            var accessKey = AWS.config.credentials.accessKeyId
-            var secretKey = AWS.config.credentials.secretAccessKey
-            var sessionToken = AWS.config.credentials.sessionToken
-            accessS3(accessKey, secretKey, sessionToken)
+            if (error) {
+                console.log(token)
+                alert(error)
+            } else {
+                var accessKey = AWS.config.credentials.accessKeyId
+                var secretKey = AWS.config.credentials.secretAccessKey
+                var sessionToken = AWS.config.credentials.sessionToken
+                accessS3(accessKey, secretKey, sessionToken)
+            }
         })
 
 
@@ -224,13 +235,13 @@ var doButtonActionSTS = function(action, resource) {
     var idToken = googleUser.Zi.id_token
 
     AWS.config.credentials = new AWS.WebIdentityCredentials({
-        RoleArn: config.role1,
+        RoleArn: config.RoleIAMAuthViaSTS,
         WebIdentityToken: idToken
     });
 
     var paramsSTS = {
         DurationSeconds: 3600,
-        RoleArn: config.role1,
+        RoleArn: config.RoleIAMAuthViaSTS,
         RoleSessionName: "test",
         WebIdentityToken: idToken
     };
@@ -251,10 +262,10 @@ var doButtonActionFedIdentity = function(action = null, resource = null) {
     var idToken = googleUser.Zi.id_token;
     // var accessToken = googleUser.Zi.access_token
 
-    AWS.config.region = config.region;
+    AWS.config.region = config.Region;
     // Configure the credentials provider to use your identity pool
     AWS.config.credentials = new AWS.CognitoIdentityCredentials({
-        IdentityPoolId: config.identityPoolId,
+        IdentityPoolId: config.FedIdentity,
         Logins: { // optional tokens, used for authenticated login
             'accounts.google.com': idToken
         }
@@ -278,11 +289,12 @@ function googleSignIn() {
     document.getElementById('buttonCognito4').disabled = false
     document.getElementById('buttonCognito5').disabled = false
     document.getElementById('googleSignout').disabled = false
+    document.getElementById('googleSignin').disabled = true
     document.getElementById('showtokenGoogle').disabled = false
     document.getElementById('doClear').disabled = false
 
     if (getCookie('token') == undefined || getCookie('token') == '') {
-        var url = 'https://' + config.userPoolDomainName + '.auth.' + config.region + '.amazoncognito.com/login?redirect_uri=' + config.callbackUrl + '&response_type=token&client_id=' + config.userPoolClientId
+        var url = 'https://' + config.CustomDomainName + '.auth.' + config.Region + '.amazoncognito.com/login?redirect_uri=' + config.CallbackUrl + '&response_type=token&client_id=' + config.UserPoolAppClient
         window.location.href = url
     }
 
@@ -295,6 +307,7 @@ function googleSignOut() {
     document.getElementById('buttonCognito4').disabled = true
     document.getElementById('buttonCognito5').disabled = true
     document.getElementById('googleSignout').disabled = true
+    document.getElementById('googleSignin').disabled = false
     document.getElementById('showtokenGoogle').disabled = true
 
     deleteCookie('token')
@@ -350,5 +363,6 @@ window.addEventListener('load', function() {
 
         setCookie('token', idToken)
         document.getElementById('doClear').disabled = false
+        document.getElementById('googleSignin').disabled = true
     }
 })

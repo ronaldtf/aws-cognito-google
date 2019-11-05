@@ -25,119 +25,123 @@
 
 <body>
     <table>
-        <th colspan='5'>
-            Login options
-        </th>
-        <tr>
-            <td></td>
-            <td>
-                <button class='buttonauth' id='signin' onclick='signIn()'>Sign In</button>
-            </td>
-            <td>
-                <button class='buttonauth' id='signout' onclick='signOut()'>Sign Out</button>
-            </td>
-            <td>
-                <button class='buttonauth' id='showtoken' onclick='showToken()'>Show Token</button>
-            </td>
-            <td></td>
-        </tr>
-        <th colspan='5'>
-            <p></p>
-            Federated Identity
-        </th>
-        <tr>
-            <td>
-                <button class='buttonactions' id='buttonFedIdentity1' onclick="doButtonActionFedIdentity()">Credentials</button>
-            </td>
-            <td>
-                <button class='buttonactions' id='buttonFedIdentity2' onclick="doButtonActionFedIdentity('s3')">S3</button>
-            </td>
-            <td>
-                <button class='buttonactions' id='buttonFedIdentity3' onclick="doButtonActionFedIdentity('apigateway', config.apiResource)">API Gtw noauth</button>
-            </td>
-            <td>
-                <button class='buttonactions' id='buttonFedIdentity4' onclick="doButtonActionFedIdentity('apigatewayIAM', config.apiIAMResource)">API Gtw IAM signed</button>
-            </td>
-            <td>
-                <button class='buttonnorecommended' id='buttonFedIdentity5' onclick="doButtonActionFedIdentity('apigatewayCognito', config.apiCognitoResource)">API Gtw CognitoAuth</button>
-            </td>
-        </tr>
-        <th colspan='5'>
-            IAM Role
-        </th>
-        <tr>
-            <td>
-                <button class='buttonactions' id='buttonSTS1' onclick="doButtonActionSTS()">Credentials</button>
-            </td>
-            <td>
-                <button class='buttonactions' id='buttonSTS2' onclick="doButtonActionSTS('s3')">S3</button>
-            </td>
-            <td>
-                <button class='buttonactions' id='buttonSTS3' onclick="doButtonActionSTS('apigateway', config.apiResource)">API Gtw noauth</button>
-            </td>
-            <td>
-                <button class='buttonactions' id='buttonSTS4' onclick="doButtonActionSTS('apigatewayIAM', config.apiIAMResource)">API Gtw IAM signed</button>
-            </td>
-            <td>
-                <button class='buttonnorecommended' id='buttonSTS5' onclick="doButtonActionSTS('apigatewayCognito', config.apiCognitoResource)">API Gtw CognitoAuth</button>
-            </td>
-        </tr>
-        <th colspan='5'>
-            <p></p>
-            Login options
-        </th>
-        <tr>
-            <td></td>
-            <td>
-                <button class='buttonauth' id='googleSignin' onclick='googleSignIn()'>Sign In</button>
-            </td>
-            <td>
-                <button class='buttonauth' id='googleSignout' onclick='googleSignOut()'>Sign Out</button>
-            </td>
-            <td>
-                <button class='buttonauth' id='showtokenGoogle' onclick='showTokenGoogle()'>Show Token</button>
-            </td>
-            <td></td>
-        </tr>
-        <th colspan='5'>
-            Cognito User Pool
-        </th>
-        <tr>
-            <td>
-                <button class='buttonactions' id='buttonCognito1' onclick="doButtonActionCognito()">Credentials</button>
-            </td>
-            <td>
-                <button class='buttonactions' id='buttonCognito2' onclick="doButtonActionCognito('s3')">S3</button>
-            </td>
-            <td>
-                <button class='buttonactions' id='buttonCognito3' onclick="doButtonActionCognito('apigateway', config.apiResource)">API Gtw noauth</button>
-            </td>
-            <td>
-                <button class='buttonnorecommended' id='buttonCognito4' onclick="doButtonActionCognito('apigatewayIAM', config.apiIAMResource)">API Gtw IAM signed</button>
-            </td>
-            <td>
-                <button class='buttonactions' id='buttonCognito5' onclick="doButtonActionCognito('apigatewayCognito', config.apiCognitoResource)">API Gtw CognitoAuth</button>
-            </td>
-        </tr>
-        <th id='span' colspan='5'>
-            <p></p>
-        </th>
-        <tr>
-            <td colspan="5 ">
-                <button class='buttonclear' id='doClear' onclick='doClear()'>Clear</button>
-            </td>
-        </tr>
-    </table>
-    <p>
-        <hr>
-        <div>
-            <div id="result" value=" "></div>
-        </div>
-        <div>
-            <div id="result2" value=" "></div>
-        </div>
-        <hr>
-    </p>
+        <p></p>
+        <table frame="box">
+            <th colspan='5'>
+                Login options
+            </th>
+            <tr>
+                <td></td>
+                <td>
+                    <button class='buttonauth' id='signin' onclick='signIn()'>Sign In</button>
+                </td>
+                <td>
+                    <button class='buttonauth' id='signout' onclick='signOut()'>Sign Out</button>
+                </td>
+                <td>
+                    <button class='buttonauth' id='showtoken' onclick='showToken()'>Show Token</button>
+                </td>
+                <td></td>
+            </tr>
+            <th colspan='5'>
+                <p></p>
+                Federated Identity Credentials
+            </th>
+            <tr>
+                <td>
+                    <button class='buttonactions' id='buttonFedIdentity1' onclick="doButtonActionFedIdentity()">Credentials</button>
+                </td>
+                <td>
+                    <button class='buttonactions' id='buttonFedIdentity2' onclick="doButtonActionFedIdentity('s3')">S3</button>
+                </td>
+                <td>
+                    <button class='buttonactions' id='buttonFedIdentity3' onclick="doButtonActionFedIdentity('apigateway', config.APINoAuthResource)">API Gtw noauth</button>
+                </td>
+                <td>
+                    <button class='buttonactions' id='buttonFedIdentity4' onclick="doButtonActionFedIdentity('apigatewayIAM', config.APIIamResource)">API Gtw IAM signed</button>
+                </td>
+                <td>
+                    <button class='buttonnorecommended' id='buttonFedIdentity5' onclick="doButtonActionFedIdentity('apigatewayCognito', config.APICognitoResource)">API Gtw CognitoAuth</button>
+                </td>
+            </tr>
+            <th colspan='5'>
+                Assume Role (IAM)
+            </th>
+            <tr>
+                <td>
+                    <button class='buttonactions' id='buttonSTS1' onclick="doButtonActionSTS()">Credentials</button>
+                </td>
+                <td>
+                    <button class='buttonactions' id='buttonSTS2' onclick="doButtonActionSTS('s3')">S3</button>
+                </td>
+                <td>
+                    <button class='buttonactions' id='buttonSTS3' onclick="doButtonActionSTS('apigateway', config.APINoAuthResource)">API Gtw noauth</button>
+                </td>
+                <td>
+                    <button class='buttonactions' id='buttonSTS4' onclick="doButtonActionSTS('apigatewayIAM', config.APIIamResource)">API Gtw IAM signed</button>
+                </td>
+                <td>
+                    <button class='buttonnorecommended' id='buttonSTS5' onclick="doButtonActionSTS('apigatewayCognito', config.APICognitoResource)">API Gtw CognitoAuth</button>
+                </td>
+            </tr>
+        </table>
+        <p></p>
+        <table frame='box'>
+            <th colspan='5'>
+                Login options
+            </th>
+            <tr>
+                <td></td>
+                <td>
+                    <button class='buttonauth' id='googleSignin' onclick='googleSignIn()'>Sign In</button>
+                </td>
+                <td>
+                    <button class='buttonauth' id='googleSignout' onclick='googleSignOut()'>Sign Out</button>
+                </td>
+                <td>
+                    <button class='buttonauth' id='showtokenGoogle' onclick='showTokenGoogle()'>Show Token</button>
+                </td>
+                <td></td>
+            </tr>
+            <th colspan='5'>
+                Cognito User Pool
+            </th>
+            <tr>
+                <td>
+                    <button class='buttonactions' id='buttonCognito1' onclick="doButtonActionCognito()">Credentials</button>
+                </td>
+                <td>
+                    <button class='buttonactions' id='buttonCognito2' onclick="doButtonActionCognito('s3')">S3</button>
+                </td>
+                <td>
+                    <button class='buttonactions' id='buttonCognito3' onclick="doButtonActionCognito('apigateway', config.APINoAuthResource)">API Gtw noauth</button>
+                </td>
+                <td>
+                    <button class='buttonnorecommended' id='buttonCognito4' onclick="doButtonActionCognito('apigatewayIAM', config.APIIamResource)">API Gtw IAM signed</button>
+                </td>
+                <td>
+                    <button class='buttonactions' id='buttonCognito5' onclick="doButtonActionCognito('apigatewayCognito', config.APICognitoResource)">API Gtw CognitoAuth</button>
+                </td>
+            </tr>
+            <th id='span' colspan='5'>
+                <p></p>
+            </th>
+            <tr>
+                <td colspan="5 ">
+                    <button class='buttonclear' id='doClear' onclick='doClear()'>Clear</button>
+                </td>
+            </tr>
+        </table>
+        <p>
+            <hr>
+            <div>
+                <div id="result" value=" "></div>
+            </div>
+            <div>
+                <div id="result2" value=" "></div>
+            </div>
+            <hr>
+        </p>
 </body>
 
 </html>
