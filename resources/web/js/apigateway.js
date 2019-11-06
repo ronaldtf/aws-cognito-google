@@ -1,5 +1,6 @@
 var apigateway = {}
 
+// Make a signed API Gateway request
 apigateway.makeRequest = function(credentials, resource, requestType, defaultContentType, defaultAcceptType, callback) {
 
     if (defaultContentType === undefined)
@@ -10,6 +11,8 @@ apigateway.makeRequest = function(credentials, resource, requestType, defaultCon
 
     if (!resource.startsWith('/'))
         resource = '/' + resource
+
+    // Prepare the parameters for the request
 
     var authType = 'AWS_IAM'
     var additionalParams = {}
@@ -42,6 +45,7 @@ apigateway.makeRequest = function(credentials, resource, requestType, defaultCon
 
     var apiClient = apiGateway.core.apiGatewayClientFactory.newClient(httpParams, v4params)
 
+    // Perform the request
     apiClient.makeRequest(request, authType, additionalParams, '').then(function(result) {
         callback({
             "data": result.data,
@@ -49,7 +53,6 @@ apigateway.makeRequest = function(credentials, resource, requestType, defaultCon
             "status_text": result.statusText
         })
     }).catch(function(result) {
-        console.log(result)
         callback({
             "data": "",
             "status": "400",

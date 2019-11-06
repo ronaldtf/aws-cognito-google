@@ -2,6 +2,26 @@ var auth2
 var googleUser = null
 
 window.addEventListener('load', function() {
+    // Set token value if this page is called from a Cognito User Pool custom domain
+    // (know by checking the url path)
+    var ID_TOKEN = 'id_token='
+    var pathname = window.location.href
+    var idTokenPos = pathname.indexOf(ID_TOKEN);
+    if (idTokenPos != -1) {
+        idTokenPos += ID_TOKEN.length
+        var subpath = pathname.substring(idTokenPos)
+        var idTokenEnd = subpath.indexOf('&')
+        if (idTokenEnd == -1)
+            idTokenEnd = subpath.length
+        var idToken = pathname.substr(idTokenPos, idTokenEnd)
+
+        output(JSON.stringify(parseJwt(idToken), undefined, 4), document.getElementById("result"))
+
+        setCookie('token', idToken)
+        document.getElementById('doClear').disabled = false
+        document.getElementById('googleSignin').disabled = true
+    }
+    // Get Google user
     gapi.load('auth2', function() {
         auth2 = gapi.auth2.init({
             client_id: config.GoogleAppId,
@@ -9,8 +29,10 @@ window.addEventListener('load', function() {
         });
         auth2.currentUser.listen(userChanged)
     })
+
 })
 
+// Listener when the user changes
 var userChanged = function(user) {
     var userLogged = (user.Zi != null)
     if (userLogged) {
@@ -49,6 +71,23 @@ var userChanged = function(user) {
     }
 }
 
+// Sign in a Google user
+var signIn = function() {
+    if (auth2.isSignedIn.get() == false) {
+        auth2.signIn();
+    }
+}
+
+// Sign out a Google user
+var signOut = function() {
+    if (auth2.isSignedIn.get() == true) {
+        auth2.signOut();
+        auth2.disconnect()
+    }
+    doClear()
+}
+
+// Clear the results section
 var doClear = function() {
 
     var tag = document.getElementById("result")
@@ -59,26 +98,13 @@ var doClear = function() {
         tag2.removeChild(tag2.children[0]);
 }
 
-var signIn = function() {
-    if (auth2.isSignedIn.get() == false) {
-        auth2.signIn();
-    }
-}
-
-var signOut = function() {
-    if (auth2.isSignedIn.get() == true) {
-        auth2.signOut();
-        auth2.disconnect()
-    }
-    doClear()
-}
-
+// Show results section
 var output = function(inp, tag) {
-
     tag.appendChild(document.createElement('pre')).innerHTML = inp;
 }
 
-function decodeToken(token) {
+// Decode a token to see its contents in a readable format
+var decodeToken = function(token) {
     var header = JSON.parse(atob(token.split('.')[0]));
     var payload = JSON.parse(atob(token.split('.')[1]));
     var tokenDecoded = {
@@ -86,9 +112,16 @@ function decodeToken(token) {
         "payload": payload
     }
     return tokenDecoded
-
 }
 
+// Parse a JWT token
+function parseJwt(token) {
+    var base64Url = token.split('.')[1];
+    var base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    return JSON.parse(window.atob(base64));
+}
+
+// Display token content in the results section
 var showToken = function() {
     var idToken = googleUser.Zi.id_token
     var accessToken = googleUser.Zi.access_token
@@ -99,6 +132,29 @@ var showToken = function() {
     output(accessToken, document.getElementById("result2"))
 }
 
+// Set a value to a cookie
+function setCookie(cname, cvalue) {
+    var d = new Date();
+    d.setTime(d.getTime() + (30 * 60 * 1000)); // Expires after 30 minutes
+    var expires = "expires=" + d.toUTCString();
+    document.cookie = cname + "=" + cvalue + ";" + expires + ";SameSite=None";
+}
+
+// Get the value from a cookie
+function getCookie(name) {
+    var value = "; " + document.cookie;
+    var parts = value.split("; " + name + "=");
+    if (parts.length == 2) {
+        return parts.pop().split(";").shift();
+    }
+}
+
+// Delete a cookie
+function deleteCookie(name) {
+    document.cookie = name + "='';expires=Thu, 01 Jan 1970 00:00:01 GMT;SameSite=None";
+}
+
+// Display an S3 key file given the input credentials
 var accessS3 = function(awsAccessKeyId, awsSecretAccessKey, awsSessionToken) {
 
     var s3 = new AWS.S3({
@@ -108,12 +164,6 @@ var accessS3 = function(awsAccessKeyId, awsSecretAccessKey, awsSessionToken) {
         sessionToken: awsSessionToken
     });
 
-    console.log({
-        region: config.Region,
-        accessKeyId: awsAccessKeyId,
-        secretAccessKey: awsSecretAccessKey,
-        sessionToken: awsSessionToken
-    })
     var paramsS3 = {
         Bucket: config.ReferredBucket,
         Key: config.s3key
@@ -128,6 +178,7 @@ var accessS3 = function(awsAccessKeyId, awsSecretAccessKey, awsSessionToken) {
     })
 }
 
+// Perform a signed API Gateway request with the input credentials and display the result in the result section
 var callApiGatewaySignedIAM = function(awsAccessKeyId, awsSecretAccessKey, awsSessionToken, resource) {
 
     var credentials = {
@@ -147,6 +198,7 @@ var callApiGatewaySignedIAM = function(awsAccessKeyId, awsSecretAccessKey, awsSe
 
 }
 
+// Perform a request to API Gateway (not signed)
 var callApiGateway = function(resource, accessToken = null) {
     if (accessToken == null)
         accessToken = ''
@@ -172,7 +224,8 @@ var callApiGateway = function(resource, accessToken = null) {
     });
 }
 
-var performActionGoogle = function(action, resource, token) {
+// Perform an action give the Cognito User Pool custom domain
+var performActionCustomDomainCognito = function(action, resource, token) {
 
     if (action == 's3') {
         const loginId = 'cognito-idp.' + config.Region + '.amazonaws.com/' + config.UserPoolWithFedIdentity
@@ -186,7 +239,6 @@ var performActionGoogle = function(action, resource, token) {
 
         AWS.config.credentials.get(function(error) {
             if (error) {
-                console.log(token)
                 alert(error)
             } else {
                 var accessKey = AWS.config.credentials.accessKeyId
@@ -195,8 +247,6 @@ var performActionGoogle = function(action, resource, token) {
                 accessS3(accessKey, secretKey, sessionToken)
             }
         })
-
-
     } else if (action == 'apigatewayIAM') {
         callApiGatewaySignedIAM(null, null, null, resource)
     } else
@@ -210,6 +260,7 @@ var performActionGoogle = function(action, resource, token) {
     }
 }
 
+// Perform an action given the input parameters
 var performAction = function(action, resource, accessKeyId, secretAccessKey, sessionToken, cognitoAccessToken) {
     if (action == 's3') {
         accessS3(accessKeyId, secretAccessKey, sessionToken)
@@ -230,15 +281,17 @@ var performAction = function(action, resource, accessKeyId, secretAccessKey, ses
     }
 }
 
+// Get credentials through an assume role and perform a given action
 var doButtonActionSTS = function(action, resource) {
 
+    // Set credentials
     var idToken = googleUser.Zi.id_token
-
     AWS.config.credentials = new AWS.WebIdentityCredentials({
         RoleArn: config.RoleIAMAuthViaSTS,
         WebIdentityToken: idToken
     });
 
+    // Do assume role
     var paramsSTS = {
         DurationSeconds: 3600,
         RoleArn: config.RoleIAMAuthViaSTS,
@@ -247,6 +300,7 @@ var doButtonActionSTS = function(action, resource) {
     };
     var sts = new AWS.STS();
     sts.assumeRoleWithWebIdentity(paramsSTS, function(err, data) {
+        // Perform an action if possible
         if (err) {
             output(String.fromCharCode.apply(null, "OPERATION NOT ALLOWED: " + err), document.getElementById("result"))
         } else {
@@ -257,6 +311,7 @@ var doButtonActionSTS = function(action, resource) {
 
 }
 
+// Get credentials from Federated Identity and performa an action
 var doButtonActionFedIdentity = function(action = null, resource = null) {
 
     var idToken = googleUser.Zi.id_token;
@@ -271,18 +326,21 @@ var doButtonActionFedIdentity = function(action = null, resource = null) {
         }
     });
 
+    // Perform an action, if possible
     AWS.config.credentials.get(function() {
         performAction(action, resource, AWS.config.credentials.accessKeyId, AWS.config.credentials.secretAccessKey, AWS.config.credentials.sessionToken, null)
     });
 }
 
+// Display Google token contents in the result section
 var showTokenGoogle = function() {
     doClear()
     output(JSON.stringify(decodeToken(getCookie('token')), null, 2), document.getElementById("result"))
     output(getCookie('token'), document.getElementById("result2"))
 }
 
-function googleSignIn() {
+// Invoke the Cognito User Pool custom domain with the right parameters
+var googleSignInCustomDomain = function() {
     document.getElementById('buttonCognito1').disabled = false
     document.getElementById('buttonCognito2').disabled = false
     document.getElementById('buttonCognito3').disabled = false
@@ -297,10 +355,10 @@ function googleSignIn() {
         var url = 'https://' + config.CustomDomainName + '.auth.' + config.Region + '.amazoncognito.com/login?redirect_uri=' + config.CallbackUrl + '&response_type=token&client_id=' + config.UserPoolAppClient
         window.location.href = url
     }
-
 }
 
-function googleSignOut() {
+// Sign out from Cognito User Pool custom domain
+var googleSignOutCustomDomain = function() {
     document.getElementById('buttonCognito1').disabled = true
     document.getElementById('buttonCognito2').disabled = true
     document.getElementById('buttonCognito3').disabled = true
@@ -316,53 +374,7 @@ function googleSignOut() {
         document.getElementById('doClear').disabled = true
 }
 
-function doButtonActionCognito(action = null, resource = null) {
-
-    performActionGoogle(action, resource, getCookie('token'))
+// Perform an action given the Cognito User Pool credentials (from Custom Domain)
+var doButtonActionCognito = function(action = null, resource = null) {
+    performActionCustomDomainCognito(action, resource, getCookie('token'))
 }
-
-function parseJwt(token) {
-    var base64Url = token.split('.')[1];
-    var base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    return JSON.parse(window.atob(base64));
-}
-
-function setCookie(cname, cvalue) {
-    var d = new Date();
-    d.setTime(d.getTime() + (30 * 60 * 1000)); // Expires after 30 minutes
-    var expires = "expires=" + d.toUTCString();
-    document.cookie = cname + "=" + cvalue + ";" + expires + ";SameSite=None";
-}
-
-function getCookie(name) {
-    var value = "; " + document.cookie;
-    var parts = value.split("; " + name + "=");
-    if (parts.length == 2) {
-        return parts.pop().split(";").shift();
-    }
-}
-
-function deleteCookie(name) {
-    document.cookie = name + "='';expires=Thu, 01 Jan 1970 00:00:01 GMT;SameSite=None";
-}
-
-window.addEventListener('load', function() {
-    var ID_TOKEN = 'id_token='
-    var pathname = window.location.href
-
-    var idTokenPos = pathname.indexOf(ID_TOKEN);
-    if (idTokenPos != -1) {
-        idTokenPos += ID_TOKEN.length
-        var subpath = pathname.substring(idTokenPos)
-        var idTokenEnd = subpath.indexOf('&')
-        if (idTokenEnd == -1)
-            idTokenEnd = subpath.length
-        var idToken = pathname.substr(idTokenPos, idTokenEnd)
-
-        output(JSON.stringify(parseJwt(idToken), undefined, 4), document.getElementById("result"))
-
-        setCookie('token', idToken)
-        document.getElementById('doClear').disabled = false
-        document.getElementById('googleSignin').disabled = true
-    }
-})
