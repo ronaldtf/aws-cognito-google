@@ -18,7 +18,7 @@ CALLBACK_URL=
 ############################################################################################
 
 # Custom files/paths
-WEB_PATH=../resources/web
+WEB_PATH=../web
 TEST_FILE=test.json
 WEB_SCRIPT=runserver.sh
 TEST_PATH=../resources/${TEST_FILE}
