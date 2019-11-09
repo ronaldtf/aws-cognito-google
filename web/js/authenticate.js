@@ -227,7 +227,7 @@ var callApiGateway = function(resource, accessToken = null) {
 // Perform an action give the Cognito User Pool custom domain
 var performActionCustomDomainCognito = function(action, resource, token) {
 
-    if (action == 's3') {
+    if (action == 's3' || action == 'apigatewayIAM') {
         const loginId = 'cognito-idp.' + config.Region + '.amazonaws.com/' + config.UserPoolWithFedIdentity
         AWS.config.region = config.Region
         AWS.config.credentials = new AWS.CognitoIdentityCredentials({
@@ -244,11 +244,12 @@ var performActionCustomDomainCognito = function(action, resource, token) {
                 var accessKey = AWS.config.credentials.accessKeyId
                 var secretKey = AWS.config.credentials.secretAccessKey
                 var sessionToken = AWS.config.credentials.sessionToken
-                accessS3(accessKey, secretKey, sessionToken)
+                if (action == 's3')
+                    accessS3(accessKey, secretKey, sessionToken)
+                else // action == apigatewayIAM
+                    callApiGatewaySignedIAM(accessKey, secretKey, sessionToken, resource)
             }
         })
-    } else if (action == 'apigatewayIAM') {
-        callApiGatewaySignedIAM(null, null, null, resource)
     } else
     if (action == 'apigateway') {
         callApiGateway(resource)
