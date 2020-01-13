@@ -124,12 +124,11 @@ function parseJwt(token) {
 // Display token content in the results section
 var showToken = function() {
     var idToken = googleUser.Zi.id_token
-    var accessToken = googleUser.Zi.access_token
     var idTokenDecoded = decodeToken(idToken)
 
     doClear()
     output(JSON.stringify(idTokenDecoded, null, 2), document.getElementById("result"))
-    output(accessToken, document.getElementById("result2"))
+    output(idToken, document.getElementById("result2"))
 }
 
 // Set a value to a cookie
@@ -262,7 +261,7 @@ var performActionCustomDomainCognito = function(action, resource, token) {
 }
 
 // Perform an action given the input parameters
-var performAction = function(action, resource, accessKeyId, secretAccessKey, sessionToken, cognitoAccessToken) {
+var performAction = function(action, resource, accessKeyId, secretAccessKey, sessionToken) {
     if (action == 's3') {
         accessS3(accessKeyId, secretAccessKey, sessionToken)
     } else if (action == 'apigatewayIAM') {
@@ -270,7 +269,7 @@ var performAction = function(action, resource, accessKeyId, secretAccessKey, ses
     } else if (action == 'apigateway') {
         callApiGateway(resource)
     } else if (action == 'apigatewayCognito') {
-        callApiGateway(resource, cognitoAccessToken)
+        callApiGateway(resource, null)
     } else {
         var credentials = {
             "accessKeyId": accessKeyId,
@@ -305,7 +304,7 @@ var doButtonActionSTS = function(action, resource) {
         if (err) {
             output(String.fromCharCode.apply(null, "OPERATION NOT ALLOWED: " + err), document.getElementById("result"))
         } else {
-            performAction(action, resource, data.Credentials.AccessKeyId, data.Credentials.SecretAccessKey, data.Credentials.SessionToken, null)
+            performAction(action, resource, data.Credentials.AccessKeyId, data.Credentials.SecretAccessKey, data.Credentials.SessionToken)
 
         }
     });
@@ -316,7 +315,6 @@ var doButtonActionSTS = function(action, resource) {
 var doButtonActionFedIdentity = function(action = null, resource = null) {
 
     var idToken = googleUser.Zi.id_token;
-    // var accessToken = googleUser.Zi.access_token
 
     AWS.config.region = config.Region;
     // Configure the credentials provider to use your identity pool
@@ -329,7 +327,7 @@ var doButtonActionFedIdentity = function(action = null, resource = null) {
 
     // Perform an action, if possible
     AWS.config.credentials.get(function() {
-        performAction(action, resource, AWS.config.credentials.accessKeyId, AWS.config.credentials.secretAccessKey, AWS.config.credentials.sessionToken, null)
+        performAction(action, resource, AWS.config.credentials.accessKeyId, AWS.config.credentials.secretAccessKey, AWS.config.credentials.sessionToken)
     });
 }
 
