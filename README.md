@@ -34,6 +34,8 @@ There are different ways to integrate Google IdP in AWS Cognito:
 
 ## Deployment
 
+### Deployment from the command line
+
 0. Verify you have correctly configured your `~/.aws/credentials` and `~/.aws/config` files.
    
    NOTE: In case  you need to assume a role in another account, you must follow the following procedure:
@@ -69,4 +71,22 @@ There are different ways to integrate Google IdP in AWS Cognito:
     aws-mfa --duration 1800 --device arn:aws:iam::<source_account_id>:mfa/<username> --profile <profile-e.g.-cdk> --assume-role arn:aws:iam::<target_account>:role/<role-to-be-assumed> --role-session-name <a-session-name>
     ```
 
-1. 
+1. Open the file `deploy/deploy.sh` and fill in the parameters section:
+
+  * GOOGLE_APP_ID: Google client ID, obtained after creating the configuration in [Google APIs & Services page](https://console.developers.google.com/apis/credentials/oauthclient)
+  * GOOGLE_SECRET: Google client secret, obtained after creating the configuration in [Google APIs & Services page](https://console.developers.google.com/apis/credentials/oauthclient)
+  * PROFILE: AWS profile to be used for the deployment
+  * STACK_NAME: Name to be used for the CloudFormation stack.
+  * BUCKET_NAME: Name of the bucket to be used as an example (follow [S3 bucket naming restrictions](https://docs.aws.amazon.com/AmazonS3/latest/dev/BucketRestrictions.html))
+  * CUSTOM_DOMAIN_NAME: Cognito Custom Domain Names prefix to be used
+  * CALLBACK_URL: Url to be redirected when we have authenticated ourselves and used a Cognito Custom Domain Name
+
+2. Run the script and wait until it finishes and get the ok:
+
+````
+$ ./deploy/deploy.sh
+````
+
+### Deployment from the console
+
+To deploy the infrastructure from the AWS Console, just simply take the file `deploy/deploy.yaml`and follow the [instructions from AWS to deploy a CloudFormation stack](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/cfn-using-console.html)
