@@ -31,3 +31,42 @@ There are different ways to integrate Google IdP in AWS Cognito:
    2. By connecting to the User Pool, we can simplify the configuration of services like the API Gateway, where we can configure Authorizers that use Cognito
 
 ![Google IdP with both Cognito Federated Identity and User Pool](https://raw.githubusercontent.com/ronaldtf/aws-cognito-google/master/resources/architecture/user_pool.png)
+
+## Deployment
+
+0. Verify you have correctly configured your `~/.aws/credentials` and `~/.aws/config` files.
+   
+   NOTE: In case  you need to assume a role in another account, you must follow the following procedure:
+   
+   0.1. Install the aws-mfa tool
+    ```
+    $ pip install aws-mfa
+    ```
+
+    0.2. Define a profile (e.g. cognito-long-term) and update your ~/.aws/config file by including the profile options.
+    ```
+    [profile default]
+    ...
+
+    [profile cognito-long-term]
+    region = eu-west-1
+    output = json
+    role_arn = arn:aws:iam::123456789012:role/role_to_be_assumed
+    source_profile = default
+    ```
+    Note that the `source_profile` is the profile that gives us permissions to do an assume role. Therefore, we need to define the credentials for it in the `~/.aws/config` file
+
+    0.3. Update your credentials file, by creating a tag profile by appending 'long-term' to the profile name:
+    ```
+    [cognito-long-term]
+    aws_access_key_id = YOURACCESSKEYID
+    aws_secret_access_key = YOURSECRETACCESSKEY
+    aws_mfa_device = arn:aws:iam::123456789012:mfa/iam_user
+    ```
+
+    0.4. Run the aws-mfa command to set the credentials with the profile
+    ```
+    aws-mfa --duration 1800 --device arn:aws:iam::<source_account_id>:mfa/<username> --profile <profile-e.g.-cdk> --assume-role arn:aws:iam::<target_account>:role/<role-to-be-assumed> --role-session-name <a-session-name>
+    ```
+
+1. 
