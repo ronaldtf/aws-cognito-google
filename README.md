@@ -68,7 +68,7 @@ There are different ways to integrate Google IdP in AWS Cognito:
 
     0.4. Run the aws-mfa command to set the credentials with the profile
     ```
-    aws-mfa --duration 1800 --device arn:aws:iam::<source_account_id>:mfa/<username> --profile <profile-e.g.-cdk> --assume-role arn:aws:iam::<target_account>:role/<role-to-be-assumed> --role-session-name <a-session-name>
+    aws-mfa --profile cognito
     ```
 
 1. Open the file `deploy/deploy.sh` and fill in the parameters section:
