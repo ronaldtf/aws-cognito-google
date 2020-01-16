@@ -127,4 +127,4 @@ Colors in the user interface indicate the available/allowed/unauthorized actions
 On the other side, the interface is splitted in two parts:
 
 1. _Federated Identity Credentials_ and _Assume Role (IAM)_: We simply use Cognito Federated Identities with default authorized role or assume role (architectural solution [1.](#architecture) and [2.](#architecture))
-2. _Cognito User Pool_: We use a Cognito User Pool and Federated Identities to replicate user data in the pool but keeping Google as default user data provider (if missing in Cognito user Pool). This solution uses a Cognito Custom Domain Name, that is why we have a separate login section.
+2. _Cognito User Pool_: We use a Cognito User Pool and Federated Identities to replicate user data in the pool. This solution uses a Cognito Custom Domain Name, that is why we have a separate login section.
