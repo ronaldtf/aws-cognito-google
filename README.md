@@ -111,3 +111,18 @@ This script will not only deploy the infrastructure but also perform the post-in
 5. Open the url as defined in the `CALLBACK_URL` parameter. You should see something like:
 
 ![Main page](https://raw.githubusercontent.com/ronaldtf/aws-cognito-google/master/resources/images/01.interface.png)
+
+## User interface
+
+Colors in the user interface indicate the available/allowed/unauthorized actions:
+
+* ![Gray](https://placehold.it/15/999999/000000?text=+) Button is disabled (no action is possible)
+* ![White](https://placehold.it/15/ffffff/4CAF50?text=+) Loggin button is enabled
+* ![Gren](https://placehold.it/15/00AA00/00AA00?text=+) Action is enabled
+* ![Orange](https://placehold.it/15/e7c06b/e7c06b?text=+) Action is enabled but it will fail (it is not consistent with but it has been kept there to see the result)
+* ![Gren](https://placehold.it/15/EE0000/EE0000?text=+) Clear result section
+
+On the other side, the interface is splitted in two parts:
+
+1. _Federated Identity Credentials_ and _Assume Role (IAM)_: We simply use Cognito Federated Identities with default authorized role or assume role (architectural solution [1.](#architecture) and [2.](#architecture))
+2. _Cognito User Pool_: We use a Cognito User Pool and Federated Identities to replicate user data in the pool but keeping Google as default user data provider (if missing in Cognito user Pool)
