@@ -68,7 +68,7 @@ There are different ways to integrate Google IdP in AWS Cognito:
     ```
 
 2. Configure the google IdP to authorize the AWS service to use it as an IdP. Follow the instructions from [Google Developers page](https://developers.google.com/identity/protocols/OpenIDConnect). Briefly:
-   1. Log in [Google APIs & Services page](https://console.developers.google.com/apis/dashboard)
+   1. Log in [Google APIs & Services page](https://console.developers.google.com/apis/credentials)
    2. In Credentials, `Create a new Credential`. Select the `Oauth ID` option
    3. Select `Web application` as `Application type`
    4. Put any name
@@ -88,8 +88,8 @@ There are different ways to integrate Google IdP in AWS Cognito:
 
 3. Open the file `deploy/deploy.sh` and fill in the parameters section:
 
-  * GOOGLE_APP_ID: Google client ID, obtained after creating the configuration in [Google APIs & Services page](https://console.developers.google.com/apis/dashboard)
-  * GOOGLE_SECRET: Google client secret, obtained after creating the configuration in [Google APIs & Services page](https://console.developers.google.com/apis/dashboard)
+  * GOOGLE_APP_ID: Google client ID, obtained after creating the configuration in [Google APIs & Services page](https://console.developers.google.com/apis/credentials)
+  * GOOGLE_SECRET: Google client secret, obtained after creating the configuration in [Google APIs & Services page](https://console.developers.google.com/apis/credentials)
   * PROFILE: AWS profile to be used for the deployment
   * STACK_NAME: Name to be used for the CloudFormation stack
   * BUCKET_NAME: Name of the bucket to be used as an example (follow [S3 bucket naming restrictions](https://docs.aws.amazon.com/AmazonS3/latest/dev/BucketRestrictions.html))
