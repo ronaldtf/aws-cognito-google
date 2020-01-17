@@ -105,7 +105,7 @@ $ pip3 install httpserver
 
 ```
 $ ./deploy/deploy.sh
-``
+```
 This script will not only deploy the infrastructure but also perform the post-installation steps to make the system up and running
 
 5. Open the url as defined in the `CALLBACK_URL` parameter. You should see something like:
