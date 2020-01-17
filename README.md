@@ -97,20 +97,28 @@ There are different ways to integrate Google IdP in AWS Cognito:
   * CALLBACK_URL: Url to be redirected when we have authenticated ourselves and used a Cognito Custom Domain Name (e.g. http://localhost:4567)
 
 4. Install the httpserver package (I use pip3)
-````
+```
 $ pip3 install httpserver
-````
+```
 
 5. Run the script and wait until it finishes and get the ok:
 
-````
+```
 $ ./deploy/deploy.sh
-````
+``
 This script will not only deploy the infrastructure but also perform the post-installation steps to make the system up and running
 
 5. Open the url as defined in the `CALLBACK_URL` parameter. You should see something like:
 
 ![Main page](https://raw.githubusercontent.com/ronaldtf/aws-cognito-google/master/resources/images/01.interface.png)
+
+## Destroy deployed service
+
+To remove the deployed service, just simply execute the script with the `-d` option:
+
+```
+$ ./deploy/deploy.sh -d
+```
 
 ## User interface
 
