@@ -101,10 +101,10 @@ There are different ways to integrate Google IdP in AWS Cognito:
 $ pip3 install httpserver
 ```
 
-5. Run the script and wait until it finishes and get the ok:
+5. Run the script within the `deploy` directory and wait until it finishes and get the ok (to see the available options, run it with the `-h` option):
 
 ```
-$ ./deploy/deploy.sh
+$ ./deploy.sh
 ```
 This script will not only deploy the infrastructure but also perform the post-installation steps to make the system up and running
 
@@ -114,7 +114,7 @@ This script will not only deploy the infrastructure but also perform the post-in
 
 ## Destroy deployed service
 
-To remove the deployed service, just simply execute the script with the `-d` option:
+To remove the deployed service, just simply execute the script within the `deploy` directory with the `-d` option:
 
 ```
 $ ./deploy/deploy.sh -d
